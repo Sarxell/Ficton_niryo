@@ -8,6 +8,7 @@ DIM = (1600, 1200)
 K = np.array([[781.3524863867165, 0.0, 794.7118000552183], [0.0, 779.5071163774452, 561.3314451453386], [0.0, 0.0, 1.0]])
 D = np.array([[-0.042595202508066574], [0.031307765215775184], [-0.04104704724832258], [0.015343014605793324]])
 
+
 def main():
     capture = cv2.VideoCapture(0)
     capture.set(cv2.CAP_PROP_FPS, 25)
@@ -52,7 +53,7 @@ def main():
         mask = cv2.dilate(mask, kernel, iterations=2)
         mask = cv2.erode(mask, kernel, iterations=2)
         # mask = cv2.morphologyEx(mask ,cv2.MORPH_OPEN,kernel)
-        mask, _, _ = removeSmallAndBigComponents(mask, 4000, 20000)
+        mask, centroids = removeSmallAndBigComponents(mask, 4000, 20000, (0, 0, 255))
 
         # if we want to see the mask in red
         # red_mask = cv2.bitwise_and(red_mask, red_mask, mask=mask)
@@ -63,27 +64,33 @@ def main():
     cv2.destroyAllWindows()
 
 
-def removeSmallAndBigComponents(image, threshold_min, threshold_max):
+def removeSmallAndBigComponents(image, threshold_min, threshold_max, color):
     # find all your connected components (white blobs in your image)
     nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(image, connectivity=8)
     sizes = stats[1:, -1]
     nb_components = nb_components - 1
+    h = 90
+    w = 90
     x = None
     y = None
-    img2 = np.zeros(output.shape, dtype=np.uint8)
+    img2 = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
 
     # for every component in the image, you keep it only if it's above threshold
     for i in range(0, nb_components):
-        print([sizes[i]])
         if sizes[i] >= threshold_min:
             if sizes[i] <= threshold_max:
                 # to use the biggest
-                x, y = centroids[i + 1]
+                x, y = centroids[i+1]
+                y, x = int(y), int(x)
                 # only needed if we want the biggest one
                 # threshold = sizes[i]
-                img2[output == i + 1] = 255
+                img2[output == i + 1] = (255, 255, 255)
+                # img2[int(x):int(x)+10, int(y):int(y)+10] = (0, 0, 255)
+                cv2.circle(img2, (x, y), 5, color, -1)
+                cv2.rectangle(img2, (x-h, y-w), (x + h, y + w), (0, 0, 255), 2)
 
-    return img2, x, y
+
+    return img2, centroids
 
 
 if __name__ == '__main__':
