@@ -7,7 +7,7 @@ import os
 DIM = (1600, 1200)
 K = np.array([[781.3524863867165, 0.0, 794.7118000552183], [0.0, 779.5071163774452, 561.3314451453386], [0.0, 0.0, 1.0]])
 D = np.array([[-0.042595202508066574], [0.031307765215775184], [-0.04104704724832258], [0.015343014605793324]])
-
+font = cv2.FONT_HERSHEY_SIMPLEX
 
 def main():
     capture = cv2.VideoCapture(0)
@@ -18,12 +18,12 @@ def main():
 
     # RED MASK
     # lower mask (0-10)
-    lower_red = np.array([0, 50, 50])
-    upper_red = np.array([50, 255, 255])
+    lower_red1 = np.array([0, 100, 100])
+    upper_red1 = np.array([10, 255, 255])
 
     # upper mask (170-180)
     # lower_red = np.array([170, 50, 50])
-    lower_red = np.array([170, 90, 90])
+    lower_red = np.array([150, 90, 90])
     upper_red = np.array([180, 255, 255])
 
     while 1:
@@ -44,12 +44,13 @@ def main():
         # red mask creation of the undistorted img!!
         img_hsv = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2HSV)
 
-        mask0 = cv2.inRange(img_hsv, lower_red, upper_red)
+        mask0 = cv2.inRange(img_hsv, lower_red1, upper_red1)
 
         mask1 = cv2.inRange(img_hsv, lower_red, upper_red)
 
         # join my masks
         mask = mask0 + mask1
+        # mask = mask1
         mask = cv2.dilate(mask, kernel, iterations=2)
         mask = cv2.erode(mask, kernel, iterations=2)
         # mask = cv2.morphologyEx(mask ,cv2.MORPH_OPEN,kernel)
@@ -88,6 +89,7 @@ def removeSmallAndBigComponents(image, threshold_min, threshold_max, color):
                 # img2[int(x):int(x)+10, int(y):int(y)+10] = (0, 0, 255)
                 cv2.circle(img2, (x, y), 5, color, -1)
                 cv2.rectangle(img2, (x-h, y-w), (x + h, y + w), (0, 0, 255), 2)
+                cv2.putText(img2, '(' + str(x) + ',' + str(y) + ')', (x + 50, y), font, 3, (0, 255, 0), 2, cv2.LINE_AA)
 
 
     return img2, centroids
