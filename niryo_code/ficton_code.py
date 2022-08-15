@@ -19,10 +19,25 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 h = 50
 w = 50
 M_ext = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+masks = {'red': {'lower': np.array([170, 70, 70]), 'upper': np.array([180, 255, 255])},
+         'orange': {'lower': np.array([10, 70, 70]), 'upper': np.array([20, 255, 255])},
+         'pink': {'lower': np.array([145, 70, 70]), 'upper': np.array([170, 255, 255])},
+         'green': {'lower': np.array([40, 70, 70]), 'upper': np.array([70, 255, 255])},
+         'aqua': {'lower': np.array([75, 70, 70]), 'upper': np.array([100, 255, 255])},
+         'blue': {'lower': np.array([105, 40, 40]), 'upper': np.array([145, 255, 255])}
+          }
+
 
 def main():
-    try:
+    # I/O initialization
+    pin_red = GPIO_1A
+    pin_orange = GPIO_1B
+    pin_pink = GPIO_1C
+    pin_green = GPIO_2A
+    pin_aqua = GPIO_2B
+    pin_blue = GPIO_2C
 
+    try:
         # CAMERA SETTINGS AND MASKS
         capture = cv2.VideoCapture(0)
         capture.set(cv2.CAP_PROP_FPS, 25)
@@ -30,26 +45,13 @@ def main():
         # Taking a matrix of size 5 as the kernel
         kernel = np.ones((5, 5), np.uint8)
 
-        # RED MASK
-
-        # RED MASK
-        # lower mask (0-10)
-        lower_red1 = np.array([0, 100, 100])
-        upper_red1 = np.array([10, 255, 255])
-
-        # upper mask (170-180)
-        # lower_red = np.array([170, 50, 50])
-        lower_red = np.array([150, 90, 90])
-        upper_red = np.array([180, 255, 255])
-        # --------------------------------------
-
         # INITIAL ROBOT POSE
         # Move
         n.set_arm_max_velocity(30)
+        n.change_tool(TOOL_GRIPPER_1_ID)
         initial_joints = [0, 0, -0.465, -0.078, -0.969, -0.05]
         n.move_joints(initial_joints)
-        n.change_tool(TOOL_GRIPPER_1_ID)
-        arm_pose = n.get_arm_pose()
+        arm_pose= n.get_arm_pose()
         # --------------------
 
         while 1:
@@ -57,44 +59,38 @@ def main():
             image = cv2.resize(image, (1920, 1080))
 
             #  UNDISTORTING IMAGE
-            h, w = image.shape[:2]
             camera_intrinsic = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(K, D, DIM, np.eye(3))
             map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
             undistorted_img = cv2.remap(image, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+
             # cv2.imshow("fisheye image", image)
             # cv2.imshow("undistorted", undistorted_img)
             # ----------------------------
-            #undistorted_img = cv2.resize(undistorted_img, (640, 480))
-            if cv2.waitKey(1) & 0xFF == 27:   # add code to wait for a key press
-                break
 
-            # red mask creation of the undistorted img!!
+            # HSV mask to find the colors
             img_hsv = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2HSV)
 
-            mask0 = cv2.inRange(img_hsv, lower_red1, upper_red1)
 
-            mask1 = cv2.inRange(img_hsv, lower_red, upper_red)
 
-            # join my masks
-            mask = mask0 + mask1
-            # mask = mask1
-            mask = cv2.dilate(mask, kernel, iterations=2)
-            mask = cv2.erode(mask, kernel, iterations=2)
-            # mask = cv2.morphologyEx(mask ,cv2.MORPH_OPEN,kernel)
-            mask, x, y = removeSmallAndBigComponents(mask, 1300, 10000, (0, 0, 255))
-            cv2.imshow('mask', mask)
+            # mask = cv2.dilate(mask, kernel, iterations=2)
+            # mask = cv2.erode(mask, kernel, iterations=2)
+            # # mask = cv2.morphologyEx(mask ,cv2.MORPH_OPEN,kernel)
+            # mask, x, y = removeSmallAndBigComponents(mask, 1300, 10000, (0, 0, 255))
+            # cv2.imshow('mask', mask)
+            x=0
+            y=0
             if x is not None:
                 pixel = np.array([x, y, 1]).transpose()
                 A = np.dot(np.linalg.inv(camera_intrinsic), pixel).transpose()
                 # change world coordinates to niryo workspace coordinates
                 world_points = np.dot(M_ext, A - [-0.99933767, - 0.69325907, -0.095])
-                world_coord = [world_points[0]/5.1, world_points[1] / 3.218]
+                world_coord = [world_points[0] / 5.1, world_points[1] / 3.218]
                 # create the movement to catch the pen
                 CatchPen(arm_pose, 0.093 + world_coord[1], -0.323 + world_coord[0])
                 break
 
-
-
+            if cv2.waitKey(1) & 0xFF == 27:   # add code to wait for a key press
+                break
 
         n.activate_learning_mode(True)
 
@@ -132,7 +128,7 @@ def removeSmallAndBigComponents(image, threshold_min, threshold_max, color):
 
     return img2, x,y
 
-def CatchPen(arm_pose, x_coord, y_coord, color):
+def CatchPen(arm_pose, x_coord, y_coord):
     n.open_gripper(TOOL_GRIPPER_1_ID, 500)
     n.move_pose(x_coord, y_coord, arm_pose.position.z - 0.08, arm_pose.rpy.roll,
                 arm_pose.rpy.pitch, arm_pose.rpy.yaw)

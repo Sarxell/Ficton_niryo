@@ -33,7 +33,6 @@ def main():
     lower_blue = np.array([105, 40, 40])
     upper_blue = np.array([145, 255, 255])
 
-
     img_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask_green = cv2.inRange(img_hsv, lower_green, upper_green)
     mask_red = cv2.inRange(img_hsv, lower_red, upper_red)
