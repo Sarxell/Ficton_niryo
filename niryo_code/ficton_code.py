@@ -30,12 +30,7 @@ masks = {'red': {'lower': np.array([170, 70, 70]), 'upper': np.array([180, 255, 
 
 def main():
     # I/O initialization
-    pin_red = GPIO_1A
-    pin_orange = GPIO_1B
-    pin_pink = GPIO_1C
-    pin_green = GPIO_2A
-    pin_aqua = GPIO_2B
-    pin_blue = GPIO_2C
+    pins = [GPIO_1A, GPIO_1B, GPIO_1C, GPIO_2A, GPIO_2B, GPIO_2C]
 
     try:
         # CAMERA SETTINGS AND MASKS
@@ -69,25 +64,29 @@ def main():
 
             # HSV mask to find the colors
             img_hsv = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2HSV)
+            for i in pins:
+                pin_value = n.digital_read(pins[i])
+                if pin_value == 1:
+                    mask_values = list(masks.items())[i]
+                    mask = cv2.inRange(img_hsv, mask_values[1], mask_values[2])
+                    mask = cv2.dilate(mask, kernel, iterations=2)
+                    mask = cv2.erode(mask, kernel, iterations=2)
+                    # mask = cv2.morphologyEx(mask ,cv2.MORPH_OPEN,kernel)
+                    mask, x, y = removeSmallAndBigComponents(mask, 1000, 10000, (0, 0, 255))
+                    # cv2.imshow('mask', mask)
+                    if x is not None:
+                        pixel = np.array([x, y, 1]).transpose()
+                        A = np.dot(np.linalg.inv(camera_intrinsic), pixel).transpose()
+                        # change world coordinates to niryo workspace coordinates
+                        world_points = np.dot(M_ext, A - [-0.99933767, - 0.69325907, -0.095])
+                        world_coord = [world_points[0] / 5.1, world_points[1] / 3.218]
+                        # create the movement to catch the pen
+                        CatchPen(arm_pose, 0.093 + world_coord[1], -0.323 + world_coord[0])
+                    else:
+                        NoPenOfColor(arm_pose)
 
-
-
-            # mask = cv2.dilate(mask, kernel, iterations=2)
-            # mask = cv2.erode(mask, kernel, iterations=2)
-            # # mask = cv2.morphologyEx(mask ,cv2.MORPH_OPEN,kernel)
-            # mask, x, y = removeSmallAndBigComponents(mask, 1300, 10000, (0, 0, 255))
-            # cv2.imshow('mask', mask)
-            x=0
-            y=0
-            if x is not None:
-                pixel = np.array([x, y, 1]).transpose()
-                A = np.dot(np.linalg.inv(camera_intrinsic), pixel).transpose()
-                # change world coordinates to niryo workspace coordinates
-                world_points = np.dot(M_ext, A - [-0.99933767, - 0.69325907, -0.095])
-                world_coord = [world_points[0] / 5.1, world_points[1] / 3.218]
-                # create the movement to catch the pen
-                CatchPen(arm_pose, 0.093 + world_coord[1], -0.323 + world_coord[0])
-                break
+                else:
+                    pass
 
             if cv2.waitKey(1) & 0xFF == 27:   # add code to wait for a key press
                 break
@@ -139,6 +138,13 @@ def CatchPen(arm_pose, x_coord, y_coord):
     # n.move_joints(initial_joints)
     n.move_pose(arm_pose)
     n.open_gripper(TOOL_GRIPPER_1_ID, 500)
+
+def NoPenOfColor(arm_pose):
+    n.move_pose(-0.1, -0.2, arm_pose.position.z, arm_pose.rpy.roll, arm_pose.rpy.pitch, arm_pose.rpy.yaw)
+    n.move_pose(-0.1, -0.1, arm_pose.position.z, arm_pose.rpy.roll, arm_pose.rpy.pitch, arm_pose.rpy.yaw)
+    n.move_pose(-0.1, -0.2, arm_pose.position.z, arm_pose.rpy.roll, arm_pose.rpy.pitch, arm_pose.rpy.yaw)
+    n.move_pose(-0.1, -0.1, arm_pose.position.z, arm_pose.rpy.roll, arm_pose.rpy.pitch, arm_pose.rpy.yaw)
+    n.move_pose(arm_pose)
 
 
 if __name__ == '__main__':
