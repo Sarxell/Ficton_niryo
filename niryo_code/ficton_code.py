@@ -6,7 +6,7 @@ import rospy
 import cv2
 import time
 
-rospy.init_node('niryo_one_example_python_api')
+rospy.init_node('Pen grabber starting')
 
 n = NiryoOne()
 
@@ -94,7 +94,7 @@ def main():
         n.activate_learning_mode(True)
 
     except NiryoOneException as e:
-        print e
+        print(e)
         n.activate_learning_mode(True)
         # Handle errors here
 
