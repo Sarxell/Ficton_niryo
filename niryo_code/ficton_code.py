@@ -127,6 +127,7 @@ def removeSmallAndBigComponents(image, threshold_min, threshold_max, color):
 
     return img2, x,y
 
+
 def CatchPen(arm_pose, x_coord, y_coord):
     n.open_gripper(TOOL_GRIPPER_1_ID, 500)
     n.move_pose(x_coord, y_coord, arm_pose.position.z - 0.08, arm_pose.rpy.roll,
@@ -138,6 +139,7 @@ def CatchPen(arm_pose, x_coord, y_coord):
     # n.move_joints(initial_joints)
     n.move_pose(arm_pose)
     n.open_gripper(TOOL_GRIPPER_1_ID, 500)
+
 
 def NoPenOfColor(arm_pose):
     n.move_pose(-0.1, -0.2, arm_pose.position.z, arm_pose.rpy.roll, arm_pose.rpy.pitch, arm_pose.rpy.yaw)
