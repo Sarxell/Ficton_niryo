@@ -66,7 +66,8 @@ def main():
             img_hsv = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2HSV)
             for i in pins:
                 pin_value = n.digital_read(pins[i])
-                if pin_value == 1:
+                # zero because the inputs are always HIGH (pullup resistor)
+                if pin_value == 0:
                     mask_values = list(masks.items())[i]
                     mask = cv2.inRange(img_hsv, mask_values[1], mask_values[2])
                     mask = cv2.dilate(mask, kernel, iterations=2)
