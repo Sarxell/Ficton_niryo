@@ -51,7 +51,7 @@ def main():
 
         while 1:
             _, frame = capture.read()  # get an image from the camera
-            image = cv2.resize(image, (1920, 1080))
+            image = cv2.resize(frame, (1920, 1080))
 
             #  UNDISTORTING IMAGE
             camera_intrinsic = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(K, D, DIM, np.eye(3))
@@ -136,10 +136,11 @@ def CatchPen(arm_pose, x_coord, y_coord):
     n.close_gripper(TOOL_GRIPPER_1_ID, 500)
     print(x_coord, y_coord)
     n.move_pose(-0.1, -0.2, arm_pose.position.z, arm_pose.rpy.roll, arm_pose.rpy.pitch, arm_pose.rpy.yaw)
+    n.wait(2)
     n.open_gripper(TOOL_GRIPPER_1_ID, 500)
     # n.move_joints(initial_joints)
     n.move_pose(arm_pose)
-    n.open_gripper(TOOL_GRIPPER_1_ID, 500)
+    n.close_gripper(TOOL_GRIPPER_1_ID, 500)
 
 
 def NoPenOfColor(arm_pose):
